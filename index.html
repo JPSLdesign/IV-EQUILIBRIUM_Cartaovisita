@@ -517,7 +517,7 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- ALTERAÇÃO: removido target="_blank" e melhorada a abertura da app com fallback robusto -->
+              <!-- Instagram: sem target="_blank" para não interferir com deep links -->
               <a class="igButton"
                  href="https://www.instagram.com/ivequilibrium_health.wellness/"
                  rel="noopener"
@@ -561,50 +561,67 @@
 
     let qrOpen = false;
 
-    // ALTERAÇÃO: tenta abrir via Universal Link primeiro; depois tenta app (Android intent / iOS scheme) e fallback final para web
+    // ALTERAÇÃO: abre diretamente o PERFIL na app (Android intent / iOS scheme)
+    // e cancela os fallbacks quando a app efetivamente abre, evitando o "voltar e abrir no browser"
     function openInstagramProfile(e){
       e.preventDefault();
 
       const username = "ivequilibrium_health.wellness";
       const webLink = "https://www.instagram.com/" + username + "/";
 
-      const isAndroid = /Android/i.test(navigator.userAgent);
       const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
 
-      // Sinal para cancelar fallbacks se a app abrir (a página fica "hidden")
-      let didHide = false;
-      const onVisChange = () => {
-        if (document.visibilityState === "hidden") didHide = true;
+      // Deep links para perfil
+      const iosScheme = "instagram://user?username=" + username;
+      const androidIntent =
+        "intent://instagram.com/_u/" + username +
+        "#Intent;package=com.instagram.android;scheme=https;end";
+
+      let fallback1 = null;
+      let fallback2 = null;
+
+      const cancelFallbacks = () => {
+        if (fallback1) clearTimeout(fallback1);
+        if (fallback2) clearTimeout(fallback2);
+        fallback1 = null;
+        fallback2 = null;
+
+        document.removeEventListener("visibilitychange", onVisChange);
+        window.removeEventListener("pagehide", cancelFallbacks);
+        window.removeEventListener("blur", cancelFallbacks);
       };
+
+      const onVisChange = () => {
+        if (document.visibilityState === "hidden") cancelFallbacks();
+      };
+
       document.addEventListener("visibilitychange", onVisChange, { passive: true });
+      window.addEventListener("pagehide", cancelFallbacks, { passive: true });
+      window.addEventListener("blur", cancelFallbacks, { passive: true });
 
-      // 1) Universal/App Link (em muitos dispositivos já abre a app)
-      window.location.href = webLink;
+      // 1) Tenta abrir a app diretamente no perfil
+      if (isAndroid) {
+        window.location.href = androidIntent;
+      } else if (isiOS) {
+        window.location.href = iosScheme;
+      } else {
+        // Desktop/Outros: abre web
+        window.location.href = webLink;
+        cancelFallbacks();
+        return;
+      }
 
-      // 2) Se não abriu, tenta deep link específico (mais fiável no Android via intent)
-      setTimeout(() => {
-        if (didHide) {
-          document.removeEventListener("visibilitychange", onVisChange);
-          return;
-        }
+      // 2) Fallback: se a app não abrir, vai para web
+      // (mais tempo para reduzir o efeito de "voltar e abrir sozinho")
+      fallback1 = setTimeout(() => {
+        window.location.href = webLink;
+      }, 1400);
 
-        if (isAndroid) {
-          // Android (Chrome): intent
-          const intent = "intent://instagram.com/_u/" + username +
-                         "#Intent;package=com.instagram.android;scheme=https;end";
-          window.location.href = intent;
-        } else if (isiOS) {
-          // iOS: custom scheme
-          window.location.href = "instagram://user?username=" + username;
-        }
-
-        // 3) Fallback final: web (garante que não fica preso)
-        setTimeout(() => {
-          if (!didHide) window.location.href = webLink;
-          document.removeEventListener("visibilitychange", onVisChange);
-        }, 900);
-
-      }, 250);
+      // 3) Fallback extra (garantia)
+      fallback2 = setTimeout(() => {
+        window.location.href = webLink;
+      }, 2200);
     }
 
     function openQR(){
