@@ -517,12 +517,11 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- Instagram: sem target="_blank" para não interferir com deep links -->
+              <!-- Instagram: link universal /_u/ (tende a abrir no perfil na app quando possível) -->
               <a class="igButton"
-                 href="https://www.instagram.com/ivequilibrium_health.wellness/"
+                 href="https://www.instagram.com/_u/ivequilibrium_health.wellness/"
                  rel="noopener"
-                 aria-label="Instagram"
-                 onclick="openInstagramProfile(event)">
+                 aria-label="Instagram">
                 <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
                   <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
@@ -560,94 +559,6 @@
     const qrBig = document.getElementById('qrBig');
 
     let qrOpen = false;
-
-    /**
-     * NOTA IMPORTANTE (o teu sintoma):
-     * - “a app abre mas não vai para o perfil” é comum quando o IG ignora o payload do deep link.
-     * A abordagem abaixo tenta 2 rotas para PERFIL:
-     *   1) deep link (iOS scheme / Android intent)
-     *   2) universal link especial do IG: https://www.instagram.com/_u/<username>/
-     * E só depois cai para a web normal.
-     *
-     * (Formato Android intent com www + /username/ é usado em vários guias) :contentReference[oaicite:0]{index=0}
-     * (iOS scheme instagram://user?username=...) :contentReference[oaicite:1]{index=1}
-     */
-    function openInstagramProfile(e){
-      e.preventDefault();
-
-      const username = "ivequilibrium_health.wellness";
-
-      // Web normal (fallback final)
-      const webLink = "https://www.instagram.com/" + username + "/";
-
-      // Universal link “forçado” para abrir na app (muitas vezes abre no perfil em vez do feed)
-      const universalProfile = "https://www.instagram.com/_u/" + username + "/";
-
-      const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
-
-      // Deep links
-      const iosScheme = "instagram://user?username=" + username; // :contentReference[oaicite:2]{index=2}
-      const androidIntent =
-        "intent://www.instagram.com/" + username + "/#Intent;package=com.instagram.android;scheme=https;end"; // :contentReference[oaicite:3]{index=3}
-
-      let t1 = null, t2 = null, t3 = null;
-      let iframe = null;
-
-      const cleanup = () => {
-        if (t1) clearTimeout(t1);
-        if (t2) clearTimeout(t2);
-        if (t3) clearTimeout(t3);
-        t1 = t2 = t3 = null;
-
-        document.removeEventListener("visibilitychange", onVis);
-        window.removeEventListener("pagehide", cleanup);
-        window.removeEventListener("blur", cleanup);
-
-        if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        iframe = null;
-      };
-
-      const onVis = () => {
-        if (document.visibilityState === "hidden") cleanup();
-      };
-
-      document.addEventListener("visibilitychange", onVis, { passive: true });
-      window.addEventListener("pagehide", cleanup, { passive: true });
-      window.addEventListener("blur", cleanup, { passive: true });
-
-      // 1) Tenta abrir o perfil diretamente na app
-      if (isAndroid) {
-        window.location.href = androidIntent;
-      } else if (isiOS) {
-        // iOS: usar iframe ajuda nalguns Safari/contexts a “carregar” melhor o scheme
-        iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = iosScheme;
-        document.body.appendChild(iframe);
-      } else {
-        // Desktop/Outros
-        window.location.href = webLink;
-        cleanup();
-        return;
-      }
-
-      // 2) Se a app abriu mas caiu no feed/home, muitas vezes o universal link _u corrige e abre no perfil
-      // (damos tempo suficiente para não criar o efeito “voltar e abrir sozinho”)
-      t1 = setTimeout(() => {
-        window.location.href = universalProfile;
-      }, 900);
-
-      // 3) Fallback final para web normal (se nada funcionar)
-      t2 = setTimeout(() => {
-        window.location.href = webLink;
-      }, 2200);
-
-      // 4) “garantia” extra (alguns browsers engolem o t2 em certos contexts)
-      t3 = setTimeout(() => {
-        window.location.href = webLink;
-      }, 3200);
-    }
 
     function openQR(){
       qrOpen = true;
