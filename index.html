@@ -561,67 +561,92 @@
 
     let qrOpen = false;
 
-    // ALTERAÇÃO: abre diretamente o PERFIL na app (Android intent / iOS scheme)
-    // e cancela os fallbacks quando a app efetivamente abre, evitando o "voltar e abrir no browser"
+    /**
+     * NOTA IMPORTANTE (o teu sintoma):
+     * - “a app abre mas não vai para o perfil” é comum quando o IG ignora o payload do deep link.
+     * A abordagem abaixo tenta 2 rotas para PERFIL:
+     *   1) deep link (iOS scheme / Android intent)
+     *   2) universal link especial do IG: https://www.instagram.com/_u/<username>/
+     * E só depois cai para a web normal.
+     *
+     * (Formato Android intent com www + /username/ é usado em vários guias) :contentReference[oaicite:0]{index=0}
+     * (iOS scheme instagram://user?username=...) :contentReference[oaicite:1]{index=1}
+     */
     function openInstagramProfile(e){
       e.preventDefault();
 
       const username = "ivequilibrium_health.wellness";
+
+      // Web normal (fallback final)
       const webLink = "https://www.instagram.com/" + username + "/";
+
+      // Universal link “forçado” para abrir na app (muitas vezes abre no perfil em vez do feed)
+      const universalProfile = "https://www.instagram.com/_u/" + username + "/";
 
       const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
 
-      // Deep links para perfil
-      const iosScheme = "instagram://user?username=" + username;
+      // Deep links
+      const iosScheme = "instagram://user?username=" + username; // :contentReference[oaicite:2]{index=2}
       const androidIntent =
-        "intent://instagram.com/_u/" + username +
-        "#Intent;package=com.instagram.android;scheme=https;end";
+        "intent://www.instagram.com/" + username + "/#Intent;package=com.instagram.android;scheme=https;end"; // :contentReference[oaicite:3]{index=3}
 
-      let fallback1 = null;
-      let fallback2 = null;
+      let t1 = null, t2 = null, t3 = null;
+      let iframe = null;
 
-      const cancelFallbacks = () => {
-        if (fallback1) clearTimeout(fallback1);
-        if (fallback2) clearTimeout(fallback2);
-        fallback1 = null;
-        fallback2 = null;
+      const cleanup = () => {
+        if (t1) clearTimeout(t1);
+        if (t2) clearTimeout(t2);
+        if (t3) clearTimeout(t3);
+        t1 = t2 = t3 = null;
 
-        document.removeEventListener("visibilitychange", onVisChange);
-        window.removeEventListener("pagehide", cancelFallbacks);
-        window.removeEventListener("blur", cancelFallbacks);
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("pagehide", cleanup);
+        window.removeEventListener("blur", cleanup);
+
+        if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        iframe = null;
       };
 
-      const onVisChange = () => {
-        if (document.visibilityState === "hidden") cancelFallbacks();
+      const onVis = () => {
+        if (document.visibilityState === "hidden") cleanup();
       };
 
-      document.addEventListener("visibilitychange", onVisChange, { passive: true });
-      window.addEventListener("pagehide", cancelFallbacks, { passive: true });
-      window.addEventListener("blur", cancelFallbacks, { passive: true });
+      document.addEventListener("visibilitychange", onVis, { passive: true });
+      window.addEventListener("pagehide", cleanup, { passive: true });
+      window.addEventListener("blur", cleanup, { passive: true });
 
-      // 1) Tenta abrir a app diretamente no perfil
+      // 1) Tenta abrir o perfil diretamente na app
       if (isAndroid) {
         window.location.href = androidIntent;
       } else if (isiOS) {
-        window.location.href = iosScheme;
+        // iOS: usar iframe ajuda nalguns Safari/contexts a “carregar” melhor o scheme
+        iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = iosScheme;
+        document.body.appendChild(iframe);
       } else {
-        // Desktop/Outros: abre web
+        // Desktop/Outros
         window.location.href = webLink;
-        cancelFallbacks();
+        cleanup();
         return;
       }
 
-      // 2) Fallback: se a app não abrir, vai para web
-      // (mais tempo para reduzir o efeito de "voltar e abrir sozinho")
-      fallback1 = setTimeout(() => {
-        window.location.href = webLink;
-      }, 1400);
+      // 2) Se a app abriu mas caiu no feed/home, muitas vezes o universal link _u corrige e abre no perfil
+      // (damos tempo suficiente para não criar o efeito “voltar e abrir sozinho”)
+      t1 = setTimeout(() => {
+        window.location.href = universalProfile;
+      }, 900);
 
-      // 3) Fallback extra (garantia)
-      fallback2 = setTimeout(() => {
+      // 3) Fallback final para web normal (se nada funcionar)
+      t2 = setTimeout(() => {
         window.location.href = webLink;
       }, 2200);
+
+      // 4) “garantia” extra (alguns browsers engolem o t2 em certos contexts)
+      t3 = setTimeout(() => {
+        window.location.href = webLink;
+      }, 3200);
     }
 
     function openQR(){
