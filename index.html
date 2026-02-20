@@ -482,26 +482,65 @@
     .igOverlay.is-open .igSheet{ transform: translateY(0); }
 
     .igSheetHeader{
-      padding: 14px 16px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 14px 14px 10px;
       border-bottom: 1px solid rgba(18,18,18,.08);
     }
+
+    .igSheetHeaderText{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
     .igSheetTitle{
       font-weight: 700;
       font-size: 15px;
       line-height: 1.2;
     }
+
     .igSheetSub{
-      margin-top: 6px;
       font-size: 12px;
       color: var(--muted);
       line-height: 1.3;
       word-break: break-word;
     }
+
+    .igBackBtn{
+      appearance:none;
+      border: 1px solid rgba(18,18,18,.12);
+      background: rgba(255,255,255,.9);
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      flex: 0 0 auto;
+    }
+    .igBackBtn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(111,180,76,.55);
+      background: rgba(111,180,76,.08);
+    }
+    .igBackIcon{
+      width: 18px;
+      height: 18px;
+      display:block;
+    }
+
     .igSheetActions{
       display:grid;
       gap: 10px;
       padding: 14px 16px 16px;
     }
+
     .igActionBtn{
       appearance:none;
       border: 1px solid rgba(18,18,18,.14);
@@ -548,7 +587,7 @@
 
     @media (prefers-reduced-motion: reduce){
       .igOverlay, .igSheet{ transition:none; }
-      .igActionBtn{ transition:none; transform:none !important; }
+      .igBackBtn, .igActionBtn{ transition:none; transform:none !important; }
     }
   </style>
 </head>
@@ -639,8 +678,17 @@
     <div class="igOverlay" id="igOverlay" aria-hidden="true">
       <div class="igSheet" id="igSheet" role="dialog" aria-modal="true" aria-label="Abrir Instagram">
         <div class="igSheetHeader">
-          <div class="igSheetTitle">Abrir Instagram</div>
-          <div class="igSheetSub">@ivequilibrium_health.wellness</div>
+          <div class="igSheetHeaderText">
+            <div class="igSheetTitle">Abrir Instagram</div>
+            <div class="igSheetSub">@ivequilibrium_health.wellness</div>
+          </div>
+
+          <!-- ALTERAÇÃO: apenas ícone de retroceder (sem botão com texto) -->
+          <button class="igBackBtn" type="button" id="igBackBtn" aria-label="Voltar">
+            <svg class="igBackIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
 
         <div class="igSheetActions">
@@ -658,14 +706,6 @@
               <span class="igActionHint">Abre o perfil no site do Instagram</span>
             </span>
             <span class="igActionArrow">›</span>
-          </button>
-
-          <button class="igActionBtn" type="button" id="igCancelBtn">
-            <span class="igActionLeft">
-              <span class="igActionLabel">Cancelar</span>
-              <span class="igActionHint">Voltar ao cartão</span>
-            </span>
-            <span class="igActionArrow">×</span>
           </button>
         </div>
       </div>
@@ -685,7 +725,7 @@
     const igSheet = document.getElementById('igSheet');
     const igOpenAppBtn = document.getElementById('igOpenAppBtn');
     const igOpenWebBtn = document.getElementById('igOpenWebBtn');
-    const igCancelBtn = document.getElementById('igCancelBtn');
+    const igBackBtn = document.getElementById('igBackBtn');
 
     const IG_USERNAME = "ivequilibrium_health.wellness";
     const IG_WEB = "https://www.instagram.com/" + IG_USERNAME + "/";
@@ -717,7 +757,6 @@
       igOverlay.classList.add('is-open');
       igOverlay.setAttribute('aria-hidden', 'false');
 
-      // foco no primeiro botão (acessibilidade)
       setTimeout(() => igOpenAppBtn.focus?.(), 0);
     }
 
@@ -773,7 +812,6 @@
         return;
       }
 
-      // Se não abriu a app, abre no browser
       fallback = setTimeout(() => {
         window.location.href = IG_WEB;
         cleanup();
@@ -790,7 +828,8 @@
       window.location.href = IG_WEB;
     });
 
-    igCancelBtn.addEventListener('click', closeIgMenu);
+    // ALTERAÇÃO: botão de retroceder fecha o menu
+    igBackBtn.addEventListener('click', closeIgMenu);
 
     // Fechar IG menu ao clicar fora
     igOverlay.addEventListener('click', (e) => {
