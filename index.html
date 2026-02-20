@@ -254,7 +254,7 @@
       width: fit-content;
       border-radius: 10px;
       padding: 2px 6px;
-      margin-left: -6px; /* compensa padding para não “desalinhar” */
+      margin-left: -6px;
       transition: background 160ms ease, transform 160ms ease;
       -webkit-tap-highlight-color: transparent;
     }
@@ -517,11 +517,12 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- Instagram: link universal /_u/ (tende a abrir no perfil na app quando possível) -->
+              <!-- Instagram: href normal (evita NXDOMAIN). onclick tenta abrir app e faz fallback seguro para web -->
               <a class="igButton"
-                 href="https://www.instagram.com/_u/ivequilibrium_health.wellness/"
+                 href="https://www.instagram.com/ivequilibrium_health.wellness/"
                  rel="noopener"
-                 aria-label="Instagram">
+                 aria-label="Instagram"
+                 onclick="openInstagramProfile(event)">
                 <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
                   <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
@@ -559,6 +560,65 @@
     const qrBig = document.getElementById('qrBig');
 
     let qrOpen = false;
+
+    // Instagram: tenta abrir perfil na app; se não der, abre o perfil no browser (link normal)
+    function openInstagramProfile(e){
+      e.preventDefault();
+
+      const username = "ivequilibrium_health.wellness";
+      const webLink = "https://www.instagram.com/" + username + "/";
+
+      const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+
+      const iosScheme = "instagram://user?username=" + username;
+      const androidIntent =
+        "intent://instagram.com/_u/" + username +
+        "#Intent;package=com.instagram.android;scheme=https;end";
+
+      let fallback = null;
+      let iframe = null;
+
+      const cleanup = () => {
+        if (fallback) clearTimeout(fallback);
+        fallback = null;
+
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("pagehide", cleanup);
+        window.removeEventListener("blur", cleanup);
+
+        if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        iframe = null;
+      };
+
+      const onVis = () => {
+        if (document.visibilityState === "hidden") cleanup();
+      };
+
+      document.addEventListener("visibilitychange", onVis, { passive: true });
+      window.addEventListener("pagehide", cleanup, { passive: true });
+      window.addEventListener("blur", cleanup, { passive: true });
+
+      // Tenta abrir a app
+      if (isAndroid) {
+        window.location.href = androidIntent;
+      } else if (isiOS) {
+        iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = iosScheme;
+        document.body.appendChild(iframe);
+      } else {
+        window.location.href = webLink;
+        cleanup();
+        return;
+      }
+
+      // Se não abriu a app, cai no link web (o que já sabes que funciona)
+      fallback = setTimeout(() => {
+        window.location.href = webLink;
+        cleanup();
+      }, 1400);
+    }
 
     function openQR(){
       qrOpen = true;
