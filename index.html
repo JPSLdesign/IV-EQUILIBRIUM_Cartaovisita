@@ -503,7 +503,6 @@
       line-height: 1.2;
     }
 
-    /* ALTERAÇÃO: username + botão copiar lado a lado */
     .igSheetSubRow{
       display:flex;
       align-items:center;
@@ -544,7 +543,6 @@
       display:block;
     }
 
-    /* pequeno feedback "Copiado" */
     .igCopyToast{
       position:absolute;
       top: -28px;
@@ -698,7 +696,7 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- Instagram: clique abre o nosso menu (não navega logo) -->
+              <!-- Instagram: clique abre o menu -->
               <a class="igButton"
                  href="https://www.instagram.com/ivequilibrium_health.wellness/"
                  rel="noopener"
@@ -730,14 +728,12 @@
       </div>
     </div>
 
-    <!-- Overlay Instagram chooser (controlado por nós) -->
+    <!-- Overlay Instagram -->
     <div class="igOverlay" id="igOverlay" aria-hidden="true">
       <div class="igSheet" id="igSheet" role="dialog" aria-modal="true" aria-label="Abrir Instagram">
         <div class="igSheetHeader">
           <div class="igSheetHeaderText">
             <div class="igSheetTitle">Abrir Instagram</div>
-
-            <!-- ALTERAÇÃO: username + botão copiar -->
             <div class="igSheetSubRow">
               <div class="igSheetSub" id="igUsernameText">@ivequilibrium_health.wellness</div>
 
@@ -751,7 +747,6 @@
             </div>
           </div>
 
-          <!-- ícone de retroceder -->
           <button class="igBackBtn" type="button" id="igBackBtn" aria-label="Voltar">
             <svg class="igBackIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -771,7 +766,7 @@
           <button class="igActionBtn" type="button" id="igOpenWebBtn">
             <span class="igActionLeft">
               <span class="igActionLabel">Abrir no browser</span>
-              <span class="igActionHint">Abre o perfil no site do Instagram</span>
+              <span class="igActionHint">Mantém no browser (sem tentar abrir a app)</span>
             </span>
             <span class="igActionArrow">›</span>
           </button>
@@ -795,13 +790,15 @@
     const igOpenWebBtn = document.getElementById('igOpenWebBtn');
     const igBackBtn = document.getElementById('igBackBtn');
 
-    // NOVO: copiar username
     const igCopyBtn = document.getElementById('igCopyBtn');
     const igUsernameText = document.getElementById('igUsernameText');
     const igCopyToast = document.getElementById('igCopyToast');
 
     const IG_USERNAME = "ivequilibrium_health.wellness";
     const IG_WEB = "https://www.instagram.com/" + IG_USERNAME + "/";
+
+    // ALTERAÇÃO: link “forçar browser” (abre numa nova aba/janela do browser/webview, evitando o deep-link sempre que possível)
+    const IG_WEB_FORCE = IG_WEB + "?utm_source=card_web";
 
     let qrOpen = false;
     let igOpen = false;
@@ -821,7 +818,6 @@
       qrOverlay.setAttribute('aria-hidden', 'true');
     }
 
-    // --- Instagram menu (chooser interno) ---
     function openIgMenu(e){
       e.preventDefault();
       if (qrOpen) return;
@@ -892,31 +888,36 @@
       }, 1400);
     }
 
+    // NOVO: abrir no browser sem “tentar app”
+    function openInBrowser(){
+      // tentativa 1: abrir nova aba/janela (normalmente fica no browser/webview)
+      const w = window.open(IG_WEB_FORCE, "_blank", "noopener,noreferrer");
+      // fallback: se bloqueado por popup, abre na mesma janela
+      if (!w) window.location.href = IG_WEB_FORCE;
+    }
+
     igOpenAppBtn.addEventListener('click', () => {
       closeIgMenu();
       openInstagramAppWithFallback();
     });
 
+    // ALTERAÇÃO: agora usa openInBrowser()
     igOpenWebBtn.addEventListener('click', () => {
       closeIgMenu();
-      window.location.href = IG_WEB;
+      openInBrowser();
     });
 
     igBackBtn.addEventListener('click', closeIgMenu);
 
-    // Fechar IG menu ao clicar fora
     igOverlay.addEventListener('click', (e) => {
       if (e.target === igOverlay) closeIgMenu();
     });
 
-    // impedir clique no sheet de fechar
     igSheet.addEventListener('click', (e) => e.stopPropagation());
 
-    // --- NOVO: copiar username ---
     async function copyUsername(){
       const textToCopy = "@" + IG_USERNAME;
 
-      // limpa feedback anterior
       igCopyBtn.classList.remove('is-copied');
       if (copyToastTimer) clearTimeout(copyToastTimer);
 
@@ -924,7 +925,6 @@
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(textToCopy);
         } else {
-          // fallback (http / webviews): textarea invisível
           const ta = document.createElement('textarea');
           ta.value = textToCopy;
           ta.setAttribute('readonly', '');
@@ -937,7 +937,6 @@
           document.body.removeChild(ta);
         }
 
-        // feedback "Copiado"
         igCopyBtn.classList.add('is-copied');
         igCopyToast.setAttribute('aria-hidden', 'false');
 
@@ -946,7 +945,6 @@
           igCopyToast.setAttribute('aria-hidden', 'true');
         }, 1200);
       } catch(err){
-        // se falhar, pelo menos seleciona o texto para o utilizador copiar manualmente
         const range = document.createRange();
         range.selectNodeContents(igUsernameText);
         const sel = window.getSelection();
@@ -978,7 +976,6 @@
       card.classList.toggle('is-flipped');
     });
 
-    // Teclado: Enter/Espaço para virar (desativado quando overlay aberto)
     card.addEventListener('keydown', (e) => {
       if (qrOpen || igOpen) return;
       if (e.key === 'Enter' || e.key === ' ') {
@@ -987,7 +984,6 @@
       }
     });
 
-    // Rotação do logo do verso (com reset)
     backLogo.addEventListener('click', (e) => {
       if (qrOpen || igOpen) return;
       e.stopPropagation();
@@ -1000,7 +996,6 @@
       backLogo.classList.remove('is-rotating');
     });
 
-    // Abrir QR grande
     qrBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (igOpen) return;
@@ -1015,7 +1010,6 @@
       }
     });
 
-    // Fechar ao clicar no QR grande
     qrBig.addEventListener('click', (e) => {
       e.stopPropagation();
       closeQR();
@@ -1028,12 +1022,10 @@
       }
     });
 
-    // Fechar ao clicar fora do QR grande (na camada)
     qrOverlay.addEventListener('click', (e) => {
       if (e.target === qrOverlay) closeQR();
     });
 
-    // Fechar com ESC
     window.addEventListener('keydown', (e) => {
       if (qrOpen && e.key === 'Escape') closeQR();
       if (igOpen && e.key === 'Escape') closeIgMenu();
