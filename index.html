@@ -43,6 +43,11 @@
       --overlayDim: rgba(0,0,0,.12);
       --qrBig: clamp(240px, 72vw, 420px);
       --qrBigRadius: 26px;
+
+      /* Overlay IG */
+      --igOverlayDim: rgba(0,0,0,.18);
+      --igSheetRadius: 20px;
+      --igSheetShadow: 0 24px 70px rgba(0,0,0,.18);
     }
 
     *{ box-sizing:border-box; }
@@ -439,30 +444,111 @@
       user-select:none;
     }
 
-    @media (max-height: 740px){
-      :root{
-        --pad: clamp(12px, 4.2vw, 26px);
-        --sectionGap: clamp(10px, 3.2vw, 18px);
+    /* ---------- OVERLAY IG (sheet) ---------- */
+    .igOverlay{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:end center;
+      z-index: 4;
 
-        --fs-name:  clamp(15px, 4.0vw, 18px);
-        --fs-role:  clamp(11px, 3.0vw, 12px);
-        --fs-body:  clamp(13px, 3.4vw, 14px);
-        --fs-value: clamp(12px, 3.3vw, 14px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+    .igOverlay.is-open{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .igOverlay::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: var(--igOverlayDim);
+    }
 
-        --qrSize: clamp(80px, 20vw, 120px);
-        --igSize: clamp(56px, 16vw, 72px);
-        --qrBig: clamp(220px, 70vw, 380px);
-      }
-      .services ul{ gap:7px; }
+    .igSheet{
+      position:relative;
+      width: min(420px, 100%);
+      margin: 0 var(--frame) calc(var(--frame) + env(safe-area-inset-bottom));
+      border-radius: var(--igSheetRadius);
+      background: rgba(255,255,255,.96);
+      border: 1px solid rgba(18,18,18,.08);
+      box-shadow: var(--igSheetShadow);
+      overflow:hidden;
+      transform: translateY(10px);
+      transition: transform 220ms ease;
+    }
+    .igOverlay.is-open .igSheet{ transform: translateY(0); }
+
+    .igSheetHeader{
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(18,18,18,.08);
+    }
+    .igSheetTitle{
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+    .igSheetSub{
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .igSheetActions{
+      display:grid;
+      gap: 10px;
+      padding: 14px 16px 16px;
+    }
+    .igActionBtn{
+      appearance:none;
+      border: 1px solid rgba(18,18,18,.14);
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 12px;
+      font: inherit;
+      text-align:left;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+    .igActionBtn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(111,180,76,.55);
+      background: rgba(111,180,76,.08);
+    }
+    .igActionLeft{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .igActionLabel{
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    .igActionHint{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+    .igActionArrow{
+      font-size: 18px;
+      line-height: 1;
+      opacity: .7;
+      flex: 0 0 auto;
     }
 
     @media (prefers-reduced-motion: reduce){
-      .card{ transition:none; }
-      .backLogo{ transition:none; transform:none !important; }
-      .igButton{ transition:none; transform:none !important; }
-      .qrWrap{ transition:none; transform:none !important; }
-      .qrOverlay, .qrBig{ transition:none; }
-      a.value{ transition:none; transform:none !important; }
+      .igOverlay, .igSheet{ transition:none; }
+      .igActionBtn{ transition:none; transform:none !important; }
     }
   </style>
 </head>
@@ -517,12 +603,12 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- Instagram: href normal (evita NXDOMAIN). onclick tenta abrir app e faz fallback seguro para web -->
+              <!-- Instagram: clique abre o nosso menu (não navega logo) -->
               <a class="igButton"
                  href="https://www.instagram.com/ivequilibrium_health.wellness/"
                  rel="noopener"
                  aria-label="Instagram"
-                 onclick="openInstagramProfile(event)">
+                 onclick="openIgMenu(event)">
                 <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
                   <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
@@ -548,6 +634,42 @@
         <div class="qrBigInner">QR CODE</div>
       </div>
     </div>
+
+    <!-- Overlay Instagram chooser (controlado por nós) -->
+    <div class="igOverlay" id="igOverlay" aria-hidden="true">
+      <div class="igSheet" id="igSheet" role="dialog" aria-modal="true" aria-label="Abrir Instagram">
+        <div class="igSheetHeader">
+          <div class="igSheetTitle">Abrir Instagram</div>
+          <div class="igSheetSub">@ivequilibrium_health.wellness</div>
+        </div>
+
+        <div class="igSheetActions">
+          <button class="igActionBtn" type="button" id="igOpenAppBtn">
+            <span class="igActionLeft">
+              <span class="igActionLabel">Abrir na app</span>
+              <span class="igActionHint">Tenta abrir diretamente o perfil no Instagram</span>
+            </span>
+            <span class="igActionArrow">›</span>
+          </button>
+
+          <button class="igActionBtn" type="button" id="igOpenWebBtn">
+            <span class="igActionLeft">
+              <span class="igActionLabel">Abrir no browser</span>
+              <span class="igActionHint">Abre o perfil no site do Instagram</span>
+            </span>
+            <span class="igActionArrow">›</span>
+          </button>
+
+          <button class="igActionBtn" type="button" id="igCancelBtn">
+            <span class="igActionLeft">
+              <span class="igActionLabel">Cancelar</span>
+              <span class="igActionHint">Voltar ao cartão</span>
+            </span>
+            <span class="igActionArrow">×</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -559,21 +681,60 @@
     const qrOverlay = document.getElementById('qrOverlay');
     const qrBig = document.getElementById('qrBig');
 
+    const igOverlay = document.getElementById('igOverlay');
+    const igSheet = document.getElementById('igSheet');
+    const igOpenAppBtn = document.getElementById('igOpenAppBtn');
+    const igOpenWebBtn = document.getElementById('igOpenWebBtn');
+    const igCancelBtn = document.getElementById('igCancelBtn');
+
+    const IG_USERNAME = "ivequilibrium_health.wellness";
+    const IG_WEB = "https://www.instagram.com/" + IG_USERNAME + "/";
+
     let qrOpen = false;
+    let igOpen = false;
 
-    // Instagram: tenta abrir perfil na app; se não der, abre o perfil no browser (link normal)
-    function openInstagramProfile(e){
+    function openQR(){
+      qrOpen = true;
+      cardWrap.classList.add('is-dimmed');
+      qrOverlay.classList.add('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeQR(){
+      qrOpen = false;
+      cardWrap.classList.remove('is-dimmed');
+      qrOverlay.classList.remove('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    // --- Instagram menu (chooser interno) ---
+    function openIgMenu(e){
       e.preventDefault();
+      if (qrOpen) return;
 
-      const username = "ivequilibrium_health.wellness";
-      const webLink = "https://www.instagram.com/" + username + "/";
+      igOpen = true;
+      cardWrap.classList.add('is-dimmed');
+      igOverlay.classList.add('is-open');
+      igOverlay.setAttribute('aria-hidden', 'false');
 
+      // foco no primeiro botão (acessibilidade)
+      setTimeout(() => igOpenAppBtn.focus?.(), 0);
+    }
+
+    function closeIgMenu(){
+      igOpen = false;
+      cardWrap.classList.remove('is-dimmed');
+      igOverlay.classList.remove('is-open');
+      igOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function openInstagramAppWithFallback(){
       const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
 
-      const iosScheme = "instagram://user?username=" + username;
+      const iosScheme = "instagram://user?username=" + IG_USERNAME;
       const androidIntent =
-        "intent://instagram.com/_u/" + username +
+        "intent://instagram.com/_u/" + IG_USERNAME +
         "#Intent;package=com.instagram.android;scheme=https;end";
 
       let fallback = null;
@@ -599,7 +760,6 @@
       window.addEventListener("pagehide", cleanup, { passive: true });
       window.addEventListener("blur", cleanup, { passive: true });
 
-      // Tenta abrir a app
       if (isAndroid) {
         window.location.href = androidIntent;
       } else if (isiOS) {
@@ -608,42 +768,48 @@
         iframe.src = iosScheme;
         document.body.appendChild(iframe);
       } else {
-        window.location.href = webLink;
+        window.location.href = IG_WEB;
         cleanup();
         return;
       }
 
-      // Se não abriu a app, cai no link web (o que já sabes que funciona)
+      // Se não abriu a app, abre no browser
       fallback = setTimeout(() => {
-        window.location.href = webLink;
+        window.location.href = IG_WEB;
         cleanup();
       }, 1400);
     }
 
-    function openQR(){
-      qrOpen = true;
-      cardWrap.classList.add('is-dimmed');
-      qrOverlay.classList.add('is-open');
-      qrOverlay.setAttribute('aria-hidden', 'false');
-    }
+    igOpenAppBtn.addEventListener('click', () => {
+      closeIgMenu();
+      openInstagramAppWithFallback();
+    });
 
-    function closeQR(){
-      qrOpen = false;
-      cardWrap.classList.remove('is-dimmed');
-      qrOverlay.classList.remove('is-open');
-      qrOverlay.setAttribute('aria-hidden', 'true');
-    }
+    igOpenWebBtn.addEventListener('click', () => {
+      closeIgMenu();
+      window.location.href = IG_WEB;
+    });
 
-    // Virar cartão (desativado quando overlay está aberto)
+    igCancelBtn.addEventListener('click', closeIgMenu);
+
+    // Fechar IG menu ao clicar fora
+    igOverlay.addEventListener('click', (e) => {
+      if (e.target === igOverlay) closeIgMenu();
+    });
+
+    // impedir clique no sheet de fechar
+    igSheet.addEventListener('click', (e) => e.stopPropagation());
+
+    // --- Virar cartão (desativado quando overlay está aberto) ---
     card.addEventListener('click', (e) => {
-      if (qrOpen) return;
+      if (qrOpen || igOpen) return;
       if (e.target.closest('a') || e.target.closest('#backLogo') || e.target.closest('#qrBtn')) return;
       card.classList.toggle('is-flipped');
     });
 
     // Teclado: Enter/Espaço para virar (desativado quando overlay aberto)
     card.addEventListener('keydown', (e) => {
-      if (qrOpen) return;
+      if (qrOpen || igOpen) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         card.classList.toggle('is-flipped');
@@ -652,7 +818,7 @@
 
     // Rotação do logo do verso (com reset)
     backLogo.addEventListener('click', (e) => {
-      if (qrOpen) return;
+      if (qrOpen || igOpen) return;
       e.stopPropagation();
       backLogo.classList.remove('is-rotating');
       void backLogo.offsetWidth;
@@ -666,12 +832,14 @@
     // Abrir QR grande
     qrBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (igOpen) return;
       openQR();
     });
 
     qrBtn.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (igOpen) return;
         openQR();
       }
     });
@@ -696,8 +864,8 @@
 
     // Fechar com ESC
     window.addEventListener('keydown', (e) => {
-      if (!qrOpen) return;
-      if (e.key === 'Escape') closeQR();
+      if (qrOpen && e.key === 'Escape') closeQR();
+      if (igOpen && e.key === 'Escape') closeIgMenu();
     });
   </script>
 </body>
