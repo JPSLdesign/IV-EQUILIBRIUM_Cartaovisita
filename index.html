@@ -517,7 +517,8 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <a class="igButton" href="https://www.instagram.com/ivequilibrium_health.wellness/" rel="noopener" aria-label="Instagram">
+              <!-- ALTERAÇÃO: onclick para tentar abrir app e fallback para web -->
+              <a class="igButton" href="https://www.instagram.com/ivequilibrium_health.wellness/" target="_blank" rel="noopener" aria-label="Instagram" onclick="openInstagramProfile(event)">
                 <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
                   <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
@@ -555,6 +556,23 @@
     const qrBig = document.getElementById('qrBig');
 
     let qrOpen = false;
+
+    // ALTERAÇÃO: tenta abrir o perfil na app; se falhar, abre no browser
+    function openInstagramProfile(e){
+      e.preventDefault();
+
+      const username = "ivequilibrium_health.wellness";
+      const appLink = "instagram://user?username=" + username;
+      const webLink = "https://www.instagram.com/" + username + "/";
+
+      // tenta abrir a app
+      window.location.href = appLink;
+
+      // fallback para web (garante que não fica preso na home)
+      setTimeout(() => {
+        window.location.href = webLink;
+      }, 800);
+    }
 
     function openQR(){
       qrOpen = true;
@@ -638,5 +656,3 @@
   </script>
 </body>
 </html>
-
-
