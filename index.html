@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Cartão de Visita 9:16</title>
+
+  <style>
+    :root{
+      --green:#6FB44C;
+      --white:#ffffff;
+      --black:#121212;
+      --muted:#6a6a6a;
+      --line:#e9e9e9;
+
+      --radius: 28px;
+      --shadow: 0 24px 70px rgba(0,0,0,.14);
+
+      --pad: clamp(16px, 4.8vw, 44px);
+      --sectionGap: clamp(14px, 4.2vw, 34px);
+      --frame: clamp(14px, 4.8vw, 28px);
+
+      --qrSize: clamp(88px, 22vw, calc(96px * 1.4));
+      --igSize: clamp(60px, 18vw, 78px);
+
+      --fs-name:  clamp(16px, 4.2vw, 20px);
+      --fs-role:  clamp(11px, 3.1vw, 13px);
+      --fs-label: clamp(10px, 2.7vw, 11px);
+      --fs-body:  clamp(13px, 3.7vw, 15px);
+      --fs-value: clamp(13px, 3.6vw, 16px);
+      --fs-qr:    clamp(9px,  2.4vw, 10px);
+
+      --lh-tight: 1.15;
+      --lh-body:  1.42;
+      --lh-value: 1.20;
+
+      --bottomRadius: 22px;
+      --bottomBg: rgba(18,18,18,.03);
+      --bottomBorder: rgba(18,18,18,.08);
+
+      /* Overlay QR */
+      --overlayBlur: 7px;
+      --overlayDim: rgba(0,0,0,.12);
+      --qrBig: clamp(240px, 72vw, 420px);
+      --qrBigRadius: 26px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background:#f4f4f4;
+      display:grid;
+      place-items:center;
+    }
+
+    .stage{
+      padding: var(--frame);
+      width: min(420px, 100vw);
+      aspect-ratio: 9 / 16;
+      height: calc(100dvh - (2 * var(--frame)));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      perspective: 1400px;
+      position: relative;
+      isolation: isolate;
+    }
+
+    @media (max-width:520px){
+      body{ background:#111; }
+    }
+
+    .cardWrap{
+      width:100%;
+      height:100%;
+      position:relative;
+      border-radius: var(--radius);
+      transition: filter 220ms ease, transform 220ms ease;
+      z-index: 1;
+    }
+
+    .cardWrap.is-dimmed{
+      filter: blur(var(--overlayBlur));
+      transform: scale(.995);
+    }
+
+    .card{
+      width:100%;
+      height:100%;
+      position:relative;
+      transform-style:preserve-3d;
+      transition: transform 680ms cubic-bezier(.2,.8,.2,1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      outline:none;
+      background: transparent;
+    }
+
+    .card.is-flipped{ transform: rotateY(180deg); }
+
+    .face{
+      position:absolute;
+      inset:0;
+      border-radius: var(--radius);
+      backface-visibility:hidden;
+      overflow:hidden;
+
+      padding:
+        calc(var(--pad) + env(safe-area-inset-top))
+        calc(var(--pad) + env(safe-area-inset-right))
+        calc(var(--pad) + env(safe-area-inset-bottom))
+        calc(var(--pad) + env(safe-area-inset-left));
+
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+    }
+
+    /* ---------- FRENTE ---------- */
+    .front{
+      background: var(--white);
+      color: var(--black);
+      justify-content:space-between;
+      gap: var(--sectionGap);
+      min-height:0;
+    }
+
+    .top{
+      display:flex;
+      flex-direction:column;
+      gap: clamp(10px, 2.2vw, 16px);
+      min-height:0;
+      flex: 1 1 auto;
+    }
+
+    .logoRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex: 0 0 auto;
+    }
+
+    .logoMark{
+      width: clamp(42px, 10vw, 54px);
+      height: clamp(42px, 10vw, 54px);
+      display:grid;
+      place-items:center;
+      flex: 0 0 auto;
+    }
+
+    .logoMark img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+    }
+
+    .brand .name{
+      font-size: var(--fs-name);
+      font-weight:700;
+      line-height: var(--lh-tight);
+      letter-spacing: .01em;
+    }
+
+    .brand .role{
+      font-size: var(--fs-role);
+      color:var(--muted);
+      margin-top:6px;
+      line-height: 1.25;
+    }
+
+    .services{
+      border-top:1px solid var(--line);
+      padding-top: clamp(10px, 2.8vw, 16px);
+      min-height:0;
+      flex: 1 1 auto;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .services .title{
+      font-size: var(--fs-label);
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:10px;
+      flex: 0 0 auto;
+      line-height: 1.1;
+    }
+
+    .services ul{
+      margin:0;
+      padding-left:18px;
+      display:grid;
+      gap: 8px;
+      font-size: var(--fs-body);
+      line-height: var(--lh-body);
+
+      min-height: 0;
+      overflow:auto;
+      overscroll-behavior: contain;
+      max-height: 100%;
+    }
+
+    /* ---------- CONTACTOS ---------- */
+    .middle{
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      padding: clamp(12px, 3.2vw, 18px) 0;
+      display:flex;
+      flex-direction:column;
+      gap: 18px;
+      flex: 0 0 auto;
+    }
+
+    .contactBlock{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+    .label{
+      font-size: var(--fs-label);
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+      line-height: 1.1;
+    }
+
+    .values{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+    .value{
+      font-size: var(--fs-value);
+      font-weight:600;
+      word-break: break-word;
+      line-height: var(--lh-value);
+    }
+
+    /* Links (telemóveis) coerentes e acessíveis */
+    a.value{
+      color: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 10px;
+      padding: 2px 6px;
+      margin-left: -6px; /* compensa padding para não “desalinhar” */
+      transition: background 160ms ease, transform 160ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    a.value:hover{
+      background: rgba(111,180,76,.14);
+      transform: translateY(-1px);
+    }
+    a.value:focus-visible{
+      outline: 2px solid rgba(111,180,76,.55);
+      outline-offset: 2px;
+      background: rgba(111,180,76,.14);
+    }
+
+    /* ---------- BASE ---------- */
+    .bottom{
+      display:flex;
+      flex: 0 0 auto;
+    }
+
+    .bottomBar{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: clamp(12px, 3vw, 18px);
+
+      padding: clamp(10px, 2.6vw, 14px);
+      border-radius: var(--bottomRadius);
+      background: var(--bottomBg);
+      border: 1px solid var(--bottomBorder);
+    }
+
+    .qrWrap{
+      width: var(--qrSize);
+      aspect-ratio: 1/1;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      overflow:hidden;
+      flex: 0 0 auto;
+      cursor: pointer;
+
+      background:
+        linear-gradient(90deg, rgba(111,180,76,.18) 1px, transparent 1px) 0 0/12px 12px,
+        linear-gradient(0deg, rgba(111,180,76,.18) 1px, transparent 1px) 0 0/12px 12px;
+
+      display:grid;
+      place-items:center;
+      color: var(--muted);
+      font-size: var(--fs-qr);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+
+      transition: transform 180ms ease, border-color 180ms ease;
+    }
+
+    .qrWrap:hover{
+      transform: translateY(-1px);
+      border-color: rgba(111,180,76,.55);
+    }
+
+    .igButton{
+      width: var(--igSize);
+      height: var(--igSize);
+      border-radius:999px;
+      border: 2px solid rgba(18,18,18,.22);
+      background: rgba(255,255,255,.6);
+      display:grid;
+      place-items:center;
+      color: var(--black);
+      text-decoration:none;
+      transition: .22s ease;
+      flex:0 0 auto;
+    }
+
+    .igButton:hover{
+      border-color: var(--green);
+      background: var(--green);
+      color:#fff;
+      transform: translateY(-1px);
+    }
+
+    .igIcon{
+      width: clamp(20px, 5.6vw, 26px);
+      height: clamp(20px, 5.6vw, 26px);
+      display:block;
+    }
+
+    /* ---------- VERSO ---------- */
+    .back{
+      background: var(--green);
+      transform: rotateY(180deg);
+      align-items:center;
+      justify-content:center;
+    }
+
+    .backLogo{
+      width: clamp(170px, 62%, 340px);
+      aspect-ratio:1/1;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+
+      transition: transform 1600ms cubic-bezier(.25,.46,.45,.94);
+      will-change: transform;
+    }
+
+    .backLogo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .backLogo:hover{ transform: rotate(-12deg); }
+    .backLogo.is-rotating{ transform: rotate(-360deg); }
+
+    /* ---------- OVERLAY QR ---------- */
+    .qrOverlay{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      z-index: 3;
+
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms ease;
+    }
+
+    .qrOverlay.is-open{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .qrOverlay::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: var(--overlayDim);
+    }
+
+    .qrBig{
+      position:relative;
+      width: var(--qrBig);
+      max-width: calc(100% - 22px);
+      aspect-ratio: 1 / 1;
+      border-radius: var(--qrBigRadius);
+      border: 1px solid rgba(255,255,255,.55);
+      background: rgba(255,255,255,.86);
+      box-shadow: 0 18px 60px rgba(0,0,0,.18);
+
+      display:grid;
+      place-items:center;
+
+      transform: scale(.92);
+      transition: transform 220ms ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .qrOverlay.is-open .qrBig{
+      transform: scale(1);
+    }
+
+    .qrBigInner{
+      width: calc(100% - 26px);
+      height: calc(100% - 26px);
+      border-radius: calc(var(--qrBigRadius) - 10px);
+      border: 1px solid rgba(18,18,18,.10);
+
+      background:
+        linear-gradient(90deg, rgba(111,180,76,.22) 1px, transparent 1px) 0 0/14px 14px,
+        linear-gradient(0deg, rgba(111,180,76,.22) 1px, transparent 1px) 0 0/14px 14px;
+
+      display:grid;
+      place-items:center;
+      color: rgba(18,18,18,.55);
+      font-size: clamp(11px, 2.6vw, 13px);
+      letter-spacing:.14em;
+      text-transform: uppercase;
+      user-select:none;
+    }
+
+    @media (max-height: 740px){
+      :root{
+        --pad: clamp(12px, 4.2vw, 26px);
+        --sectionGap: clamp(10px, 3.2vw, 18px);
+
+        --fs-name:  clamp(15px, 4.0vw, 18px);
+        --fs-role:  clamp(11px, 3.0vw, 12px);
+        --fs-body:  clamp(13px, 3.4vw, 14px);
+        --fs-value: clamp(12px, 3.3vw, 14px);
+
+        --qrSize: clamp(80px, 20vw, 120px);
+        --igSize: clamp(56px, 16vw, 72px);
+        --qrBig: clamp(220px, 70vw, 380px);
+      }
+      .services ul{ gap:7px; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .card{ transition:none; }
+      .backLogo{ transition:none; transform:none !important; }
+      .igButton{ transition:none; transform:none !important; }
+      .qrWrap{ transition:none; transform:none !important; }
+      .qrOverlay, .qrBig{ transition:none; }
+      a.value{ transition:none; transform:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="stage">
+    <div class="cardWrap" id="cardWrap">
+      <div class="card" id="card" tabindex="0" role="button" aria-label="Virar cartão">
+        <!-- FRENTE -->
+        <section class="face front">
+          <div class="top">
+            <div class="logoRow">
+              <div class="logoMark">
+                <img src="img/logo_green.png" alt="IV Equilibrium Logo">
+              </div>
+              <div class="brand">
+                <div class="name">IV EQUILIBRIUM</div>
+                <div class="role">Terapias Holísticas - Saúde e Bem-Estar</div>
+              </div>
+            </div>
+
+            <div class="services">
+              <div class="title">Serviços</div>
+              <ul>
+                <li>Massagem Ocidental e Oriental</li>
+                <li>Medicina Chinesa - Acupuntura</li>
+                <li>Reiki</li>
+                <li>Barras de Acesso</li>
+                <li>Estética Natural (Tratamentos Rosto & Corpo)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="middle">
+            <div class="contactBlock">
+              <div class="label">Telemóvel</div>
+              <div class="values">
+                <a class="value" href="tel:+351926852121" aria-label="Ligar para 926 852 121">(+351) 926 852 121 - Vanessa Azevedo</a>
+                <a class="value" href="tel:+351963289916" aria-label="Ligar para 963 289 916">(+351) 963 289 916 - Inês Lopes Duarte</a>
+              </div>
+            </div>
+
+            <div class="contactBlock">
+              <div class="label">Email</div>
+              <div class="values">
+                <div class="value">iv.equilibrium.geral@gmail.com</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom">
+            <div class="bottomBar">
+              <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
+
+              <a class="igButton" href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
+                <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
+                  <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
+                  <circle cx="17.2" cy="6.9" r="1.2" fill="currentColor"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- VERSO -->
+        <section class="face back">
+          <div class="backLogo" id="backLogo" aria-label="Rodar logo">
+            <img src="img/logo_white.png" alt="IV Equilibrium Logo">
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Overlay QR -->
+    <div class="qrOverlay" id="qrOverlay" aria-hidden="true">
+      <div class="qrBig" id="qrBig" role="button" aria-label="Fechar QR grande" tabindex="0">
+        <div class="qrBigInner">QR CODE</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const card = document.getElementById('card');
+    const cardWrap = document.getElementById('cardWrap');
+    const backLogo = document.getElementById('backLogo');
+
+    const qrBtn = document.getElementById('qrBtn');
+    const qrOverlay = document.getElementById('qrOverlay');
+    const qrBig = document.getElementById('qrBig');
+
+    let qrOpen = false;
+
+    function openQR(){
+      qrOpen = true;
+      cardWrap.classList.add('is-dimmed');
+      qrOverlay.classList.add('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeQR(){
+      qrOpen = false;
+      cardWrap.classList.remove('is-dimmed');
+      qrOverlay.classList.remove('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    // Virar cartão (desativado quando overlay está aberto)
+    card.addEventListener('click', (e) => {
+      if (qrOpen) return;
+      if (e.target.closest('a') || e.target.closest('#backLogo') || e.target.closest('#qrBtn')) return;
+      card.classList.toggle('is-flipped');
+    });
+
+    // Teclado: Enter/Espaço para virar (desativado quando overlay aberto)
+    card.addEventListener('keydown', (e) => {
+      if (qrOpen) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.classList.toggle('is-flipped');
+      }
+    });
+
+    // Rotação do logo do verso (com reset)
+    backLogo.addEventListener('click', (e) => {
+      if (qrOpen) return;
+      e.stopPropagation();
+      backLogo.classList.remove('is-rotating');
+      void backLogo.offsetWidth;
+      backLogo.classList.add('is-rotating');
+    });
+
+    backLogo.addEventListener('transitionend', () => {
+      backLogo.classList.remove('is-rotating');
+    });
+
+    // Abrir QR grande
+    qrBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openQR();
+    });
+
+    qrBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openQR();
+      }
+    });
+
+    // Fechar ao clicar no QR grande
+    qrBig.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeQR();
+    });
+
+    qrBig.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        closeQR();
+      }
+    });
+
+    // Fechar ao clicar fora do QR grande (na camada)
+    qrOverlay.addEventListener('click', (e) => {
+      if (e.target === qrOverlay) closeQR();
+    });
+
+    // Fechar com ESC
+    window.addEventListener('keydown', (e) => {
+      if (!qrOpen) return;
+      if (e.key === 'Escape') closeQR();
+    });
+  </script>
+</body>
+</html>
