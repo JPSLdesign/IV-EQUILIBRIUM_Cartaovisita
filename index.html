@@ -517,8 +517,12 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- ALTERAÇÃO: onclick para tentar abrir app e fallback para web -->
-              <a class="igButton" href="https://www.instagram.com/ivequilibrium_health.wellness/" target="_blank" rel="noopener" aria-label="Instagram" onclick="openInstagramProfile(event)">
+              <!-- ALTERAÇÃO: removido target="_blank" e melhorada a abertura da app com fallback robusto -->
+              <a class="igButton"
+                 href="https://www.instagram.com/ivequilibrium_health.wellness/"
+                 rel="noopener"
+                 aria-label="Instagram"
+                 onclick="openInstagramProfile(event)">
                 <svg class="igIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="4" stroke="currentColor" stroke-width="1.8"/>
                   <circle cx="12" cy="12" r="4.25" stroke="currentColor" stroke-width="1.8"/>
@@ -557,21 +561,50 @@
 
     let qrOpen = false;
 
-    // ALTERAÇÃO: tenta abrir o perfil na app; se falhar, abre no browser
+    // ALTERAÇÃO: tenta abrir via Universal Link primeiro; depois tenta app (Android intent / iOS scheme) e fallback final para web
     function openInstagramProfile(e){
       e.preventDefault();
 
       const username = "ivequilibrium_health.wellness";
-      const appLink = "instagram://user?username=" + username;
       const webLink = "https://www.instagram.com/" + username + "/";
 
-      // tenta abrir a app
-      window.location.href = appLink;
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      // fallback para web (garante que não fica preso na home)
+      // Sinal para cancelar fallbacks se a app abrir (a página fica "hidden")
+      let didHide = false;
+      const onVisChange = () => {
+        if (document.visibilityState === "hidden") didHide = true;
+      };
+      document.addEventListener("visibilitychange", onVisChange, { passive: true });
+
+      // 1) Universal/App Link (em muitos dispositivos já abre a app)
+      window.location.href = webLink;
+
+      // 2) Se não abriu, tenta deep link específico (mais fiável no Android via intent)
       setTimeout(() => {
-        window.location.href = webLink;
-      }, 800);
+        if (didHide) {
+          document.removeEventListener("visibilitychange", onVisChange);
+          return;
+        }
+
+        if (isAndroid) {
+          // Android (Chrome): intent
+          const intent = "intent://instagram.com/_u/" + username +
+                         "#Intent;package=com.instagram.android;scheme=https;end";
+          window.location.href = intent;
+        } else if (isiOS) {
+          // iOS: custom scheme
+          window.location.href = "instagram://user?username=" + username;
+        }
+
+        // 3) Fallback final: web (garante que não fica preso)
+        setTimeout(() => {
+          if (!didHide) window.location.href = webLink;
+          document.removeEventListener("visibilitychange", onVisChange);
+        }, 900);
+
+      }, 250);
     }
 
     function openQR(){
