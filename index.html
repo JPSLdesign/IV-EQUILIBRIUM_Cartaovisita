@@ -503,11 +503,66 @@
       line-height: 1.2;
     }
 
+    /* ALTERAÇÃO: username + botão copiar lado a lado */
+    .igSheetSubRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
     .igSheetSub{
       font-size: 12px;
       color: var(--muted);
       line-height: 1.3;
       word-break: break-word;
+      min-width:0;
+    }
+
+    .igCopyBtn{
+      appearance:none;
+      border: 1px solid rgba(18,18,18,.12);
+      background: rgba(255,255,255,.9);
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      flex: 0 0 auto;
+      position: relative;
+    }
+    .igCopyBtn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(111,180,76,.55);
+      background: rgba(111,180,76,.08);
+    }
+    .igCopyIcon{
+      width: 18px;
+      height: 18px;
+      display:block;
+    }
+
+    /* pequeno feedback "Copiado" */
+    .igCopyToast{
+      position:absolute;
+      top: -28px;
+      right: 0;
+      background: rgba(18,18,18,.86);
+      color: #fff;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      opacity: 0;
+      transform: translateY(4px);
+      pointer-events:none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      white-space: nowrap;
+    }
+    .igCopyBtn.is-copied .igCopyToast{
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .igBackBtn{
@@ -587,7 +642,8 @@
 
     @media (prefers-reduced-motion: reduce){
       .igOverlay, .igSheet{ transition:none; }
-      .igBackBtn, .igActionBtn{ transition:none; transform:none !important; }
+      .igBackBtn, .igActionBtn, .igCopyBtn{ transition:none; transform:none !important; }
+      .igCopyToast{ transition:none; }
     }
   </style>
 </head>
@@ -680,10 +736,22 @@
         <div class="igSheetHeader">
           <div class="igSheetHeaderText">
             <div class="igSheetTitle">Abrir Instagram</div>
-            <div class="igSheetSub">@ivequilibrium_health.wellness</div>
+
+            <!-- ALTERAÇÃO: username + botão copiar -->
+            <div class="igSheetSubRow">
+              <div class="igSheetSub" id="igUsernameText">@ivequilibrium_health.wellness</div>
+
+              <button class="igCopyBtn" type="button" id="igCopyBtn" aria-label="Copiar username">
+                <span class="igCopyToast" id="igCopyToast" aria-hidden="true">Copiado</span>
+                <svg class="igCopyIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <!-- ALTERAÇÃO: apenas ícone de retroceder (sem botão com texto) -->
+          <!-- ícone de retroceder -->
           <button class="igBackBtn" type="button" id="igBackBtn" aria-label="Voltar">
             <svg class="igBackIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -727,11 +795,17 @@
     const igOpenWebBtn = document.getElementById('igOpenWebBtn');
     const igBackBtn = document.getElementById('igBackBtn');
 
+    // NOVO: copiar username
+    const igCopyBtn = document.getElementById('igCopyBtn');
+    const igUsernameText = document.getElementById('igUsernameText');
+    const igCopyToast = document.getElementById('igCopyToast');
+
     const IG_USERNAME = "ivequilibrium_health.wellness";
     const IG_WEB = "https://www.instagram.com/" + IG_USERNAME + "/";
 
     let qrOpen = false;
     let igOpen = false;
+    let copyToastTimer = null;
 
     function openQR(){
       qrOpen = true;
@@ -828,7 +902,6 @@
       window.location.href = IG_WEB;
     });
 
-    // ALTERAÇÃO: botão de retroceder fecha o menu
     igBackBtn.addEventListener('click', closeIgMenu);
 
     // Fechar IG menu ao clicar fora
@@ -838,6 +911,65 @@
 
     // impedir clique no sheet de fechar
     igSheet.addEventListener('click', (e) => e.stopPropagation());
+
+    // --- NOVO: copiar username ---
+    async function copyUsername(){
+      const textToCopy = "@" + IG_USERNAME;
+
+      // limpa feedback anterior
+      igCopyBtn.classList.remove('is-copied');
+      if (copyToastTimer) clearTimeout(copyToastTimer);
+
+      try{
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          // fallback (http / webviews): textarea invisível
+          const ta = document.createElement('textarea');
+          ta.value = textToCopy;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '-9999px';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+
+        // feedback "Copiado"
+        igCopyBtn.classList.add('is-copied');
+        igCopyToast.setAttribute('aria-hidden', 'false');
+
+        copyToastTimer = setTimeout(() => {
+          igCopyBtn.classList.remove('is-copied');
+          igCopyToast.setAttribute('aria-hidden', 'true');
+        }, 1200);
+      } catch(err){
+        // se falhar, pelo menos seleciona o texto para o utilizador copiar manualmente
+        const range = document.createRange();
+        range.selectNodeContents(igUsernameText);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        igCopyToast.textContent = "Selecionado";
+        igCopyBtn.classList.add('is-copied');
+        igCopyToast.setAttribute('aria-hidden', 'false');
+
+        copyToastTimer = setTimeout(() => {
+          igCopyToast.textContent = "Copiado";
+          igCopyBtn.classList.remove('is-copied');
+          igCopyToast.setAttribute('aria-hidden', 'true');
+          sel.removeAllRanges();
+        }, 1400);
+      }
+    }
+
+    igCopyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyUsername();
+    });
 
     // --- Virar cartão (desativado quando overlay está aberto) ---
     card.addEventListener('click', (e) => {
