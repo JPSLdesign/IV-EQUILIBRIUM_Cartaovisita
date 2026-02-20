@@ -38,13 +38,11 @@
       --bottomBg: rgba(18,18,18,.03);
       --bottomBorder: rgba(18,18,18,.08);
 
-      /* Overlay QR */
       --overlayBlur: 7px;
       --overlayDim: rgba(0,0,0,.12);
       --qrBig: clamp(240px, 72vw, 420px);
       --qrBigRadius: 26px;
 
-      /* Overlay IG */
       --igOverlayDim: rgba(0,0,0,.18);
       --igSheetRadius: 20px;
       --igSheetShadow: 0 24px 70px rgba(0,0,0,.18);
@@ -126,7 +124,6 @@
       min-height: 0;
     }
 
-    /* ---------- FRENTE ---------- */
     .front{
       background: var(--white);
       color: var(--black);
@@ -212,7 +209,6 @@
       max-height: 100%;
     }
 
-    /* ---------- CONTACTOS ---------- */
     .middle{
       border-top:1px solid var(--line);
       border-bottom:1px solid var(--line);
@@ -250,7 +246,6 @@
       line-height: var(--lh-value);
     }
 
-    /* Links (telemóveis) coerentes e acessíveis */
     a.value{
       color: inherit;
       text-decoration: none;
@@ -273,7 +268,6 @@
       background: rgba(111,180,76,.14);
     }
 
-    /* ---------- BASE ---------- */
     .bottom{
       display:flex;
       flex: 0 0 auto;
@@ -347,7 +341,6 @@
       display:block;
     }
 
-    /* ---------- VERSO ---------- */
     .back{
       background: var(--green);
       transform: rotateY(180deg);
@@ -377,7 +370,6 @@
     .backLogo:hover{ transform: rotate(-12deg); }
     .backLogo.is-rotating{ transform: rotate(-360deg); }
 
-    /* ---------- OVERLAY QR ---------- */
     .qrOverlay{
       position:absolute;
       inset:0;
@@ -444,7 +436,6 @@
       user-select:none;
     }
 
-    /* ---------- OVERLAY IG (sheet) ---------- */
     .igOverlay{
       position:absolute;
       inset:0;
@@ -639,6 +630,12 @@
     }
 
     @media (prefers-reduced-motion: reduce){
+      .card{ transition:none; }
+      .backLogo{ transition:none; transform:none !important; }
+      .igButton{ transition:none; transform:none !important; }
+      .qrWrap{ transition:none; transform:none !important; }
+      .qrOverlay, .qrBig{ transition:none; }
+      a.value{ transition:none; transform:none !important; }
       .igOverlay, .igSheet{ transition:none; }
       .igBackBtn, .igActionBtn, .igCopyBtn{ transition:none; transform:none !important; }
       .igCopyToast{ transition:none; }
@@ -650,7 +647,6 @@
   <div class="stage">
     <div class="cardWrap" id="cardWrap">
       <div class="card" id="card" tabindex="0" role="button" aria-label="Virar cartão">
-        <!-- FRENTE -->
         <section class="face front">
           <div class="top">
             <div class="logoRow">
@@ -696,7 +692,6 @@
             <div class="bottomBar">
               <div class="qrWrap" id="qrBtn" role="button" aria-label="Abrir QR grande" tabindex="0">QR</div>
 
-              <!-- Instagram: clique abre o menu -->
               <a class="igButton"
                  href="https://www.instagram.com/ivequilibrium_health.wellness/"
                  rel="noopener"
@@ -712,7 +707,6 @@
           </div>
         </section>
 
-        <!-- VERSO -->
         <section class="face back">
           <div class="backLogo" id="backLogo" aria-label="Rodar logo">
             <img src="img/logo_white.png" alt="IV Equilibrium Logo">
@@ -721,14 +715,12 @@
       </div>
     </div>
 
-    <!-- Overlay QR -->
     <div class="qrOverlay" id="qrOverlay" aria-hidden="true">
       <div class="qrBig" id="qrBig" role="button" aria-label="Fechar QR grande" tabindex="0">
         <div class="qrBigInner">QR CODE</div>
       </div>
     </div>
 
-    <!-- Overlay Instagram -->
     <div class="igOverlay" id="igOverlay" aria-hidden="true">
       <div class="igSheet" id="igSheet" role="dialog" aria-modal="true" aria-label="Abrir Instagram">
         <div class="igSheetHeader">
@@ -766,7 +758,7 @@
           <button class="igActionBtn" type="button" id="igOpenWebBtn">
             <span class="igActionLeft">
               <span class="igActionLabel">Abrir no browser</span>
-              <span class="igActionHint">Mantém no browser (sem tentar abrir a app)</span>
+              <span class="igActionHint">Abrir o link no navegador</span>
             </span>
             <span class="igActionArrow">›</span>
           </button>
@@ -796,27 +788,11 @@
 
     const IG_USERNAME = "ivequilibrium_health.wellness";
     const IG_WEB = "https://www.instagram.com/" + IG_USERNAME + "/";
-
-    // ALTERAÇÃO: link “forçar browser” (abre numa nova aba/janela do browser/webview, evitando o deep-link sempre que possível)
     const IG_WEB_FORCE = IG_WEB + "?utm_source=card_web";
 
     let qrOpen = false;
     let igOpen = false;
     let copyToastTimer = null;
-
-    function openQR(){
-      qrOpen = true;
-      cardWrap.classList.add('is-dimmed');
-      qrOverlay.classList.add('is-open');
-      qrOverlay.setAttribute('aria-hidden', 'false');
-    }
-
-    function closeQR(){
-      qrOpen = false;
-      cardWrap.classList.remove('is-dimmed');
-      qrOverlay.classList.remove('is-open');
-      qrOverlay.setAttribute('aria-hidden', 'true');
-    }
 
     function openIgMenu(e){
       e.preventDefault();
@@ -835,6 +811,20 @@
       cardWrap.classList.remove('is-dimmed');
       igOverlay.classList.remove('is-open');
       igOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function openQR(){
+      qrOpen = true;
+      cardWrap.classList.add('is-dimmed');
+      qrOverlay.classList.add('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeQR(){
+      qrOpen = false;
+      cardWrap.classList.remove('is-dimmed');
+      qrOverlay.classList.remove('is-open');
+      qrOverlay.setAttribute('aria-hidden', 'true');
     }
 
     function openInstagramAppWithFallback(){
@@ -888,11 +878,8 @@
       }, 1400);
     }
 
-    // NOVO: abrir no browser sem “tentar app”
     function openInBrowser(){
-      // tentativa 1: abrir nova aba/janela (normalmente fica no browser/webview)
       const w = window.open(IG_WEB_FORCE, "_blank", "noopener,noreferrer");
-      // fallback: se bloqueado por popup, abre na mesma janela
       if (!w) window.location.href = IG_WEB_FORCE;
     }
 
@@ -901,7 +888,6 @@
       openInstagramAppWithFallback();
     });
 
-    // ALTERAÇÃO: agora usa openInBrowser()
     igOpenWebBtn.addEventListener('click', () => {
       closeIgMenu();
       openInBrowser();
@@ -969,7 +955,6 @@
       copyUsername();
     });
 
-    // --- Virar cartão (desativado quando overlay está aberto) ---
     card.addEventListener('click', (e) => {
       if (qrOpen || igOpen) return;
       if (e.target.closest('a') || e.target.closest('#backLogo') || e.target.closest('#qrBtn')) return;
